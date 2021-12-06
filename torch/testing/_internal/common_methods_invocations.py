@@ -7581,6 +7581,32 @@ def sample_inputs_pdist(op_info, device, dtype, requires_grad, **kwargs):
         *[SampleInput(make_input((S, S)), kwargs=dict(p=p)) for p in (0.0, 1.0, 2.0, 10.0, float("inf"))],
     ]
 
+def sample_inputs_binary_cross_entropy(op_info, device, dtype, requires_grad, logits=False, **kwargs):
+    make = partial(make_tensor, device=device, dtype=dtype)
+    make_prob = partial(make, low=0, high=1)
+
+    reductions = ("mean", "sum", "none")
+
+    shapes_and_kwargs = [
+        *[(shape, None) for shape in ((), (1,), (S,), (S, S), (S, S, S))],
+        *[((S, S), dict(reduction=reduction)) for reduction in reductions],
+        *[((S, S), dict(reduction=reduction, weight=make((S, S)))) for reduction in reductions],
+    ]
+
+    if logits:
+        shapes_and_kwargs.extend(
+            [((S, S), dict(reduction=reduction, pos_weight=make((S,), low=0))) for reduction in reductions]
+        )
+
+    return [
+        SampleInput(
+            (make if logits else make_prob)(shape, requires_grad=requires_grad),
+            args=(make_prob(shape, requires_grad=requires_grad),),
+            kwargs=kwargs,
+        )
+        for shape, kwargs in shapes_and_kwargs
+    ]
+
 
 foreach_unary_op_db: List[OpInfo] = [
     ForeachFuncInfo('exp'),
@@ -14271,6 +14297,82 @@ op_db: List[OpInfo] = [
         # def the_method(i0):
         #     return torch.nn.functional.pdist(i0, p=inf)
         skips=(
+            DecorateInfo(
+                unittest.expectedFailure,
+                "TestJit",
+                "test_variant_consistency_jit",
+            ),
+        ),
+    ),
+    OpInfo(
+        "nn.functional.binary_cross_entropy",
+        sample_inputs_func=sample_inputs_binary_cross_entropy,
+        dtypes=floating_types(),
+        dtypesIfCUDA=floating_types_and(torch.float16, torch.bfloat16),
+        supports_out=False,
+        decorators=(
+            DecorateInfo(
+                toleranceOverride({torch.float32: tol(atol=1e-3, rtol=1e-3)}),
+                "TestJit",
+                "test_variant_consistency_jit",
+            ),
+        ),
+        skips=(
+            # RuntimeError: expected int at position 0, but got: Tensor
+            DecorateInfo(
+                unittest.expectedFailure,
+                "TestJit",
+                "test_variant_consistency_jit",
+            ),
+            # torch.autograd.gradcheck.GradcheckError: While computing batched gradients, got:
+            # vmap: aten::mul_(self, *extra_args) is not possible because there exists a Tensor `other` in extra_args
+            # that has more elements than `self`. This happened due to `other` being vmapped over but `self` not being
+            # vmapped over at level 1. Please try to use out-of-place operators instead of aten::mul_.
+            DecorateInfo(
+                unittest.expectedFailure,
+                "TestGradients",
+                "test_fn_grad",
+            ),
+            # NotImplementedError: the derivative for 'binary_cross_entropy_backward wrt `target`' is not implemented.
+            DecorateInfo(
+                unittest.expectedFailure,
+                "TestGradients",
+                "test_fn_gradgrad",
+            ),
+        ),
+    ),
+    OpInfo(
+        "nn.functional.binary_cross_entropy_with_logits",
+        sample_inputs_func=partial(sample_inputs_binary_cross_entropy, logits=True),
+        dtypes=floating_types_and(torch.bfloat16),
+        dtypesIfCUDA=floating_types_and(torch.float16, torch.bfloat16),
+        supports_out=False,
+        supports_forward_ad=True,
+        decorators=(
+            DecorateInfo(
+                toleranceOverride({torch.float32: tol(atol=1e-3, rtol=1e-3)}),
+                "TestJit",
+                "test_variant_consistency_jit",
+            ),
+        ),
+        skips=(
+            # torch.autograd.gradcheck.GradcheckError: While computing batched gradients, got:
+            # vmap: aten::mul_(self, *extra_args) is not possible because there exists a Tensor `other` in extra_args
+            # that has more elements than `self`. This happened due to `other` being vmapped over but `self` not being
+            # vmapped over at level 1. Please try to use out-of-place operators instead of aten::mul_.
+            DecorateInfo(
+                unittest.expectedFailure,
+                "TestGradients",
+                "test_fn_grad",
+            ),
+            # RuntimeError: one of the variables needed for gradient computation has been modified by an inplace
+            # operation: [torch.DoubleTensor [5, 5]], which is output 0 of SigmoidBackward0, is at version 1;
+            # expected version 0 instead.
+            DecorateInfo(
+                unittest.expectedFailure,
+                "TestGradients",
+                "test_fn_gradgrad",
+            ),
             DecorateInfo(
                 unittest.expectedFailure,
                 "TestJit",
