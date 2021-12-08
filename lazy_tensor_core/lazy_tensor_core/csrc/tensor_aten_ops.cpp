@@ -456,9 +456,15 @@ LazyTensor tanh_backward(const LazyTensor& grad_output,
                          const LazyTensor& output) {
   // Shape stays the same since pow is a unary op
   std::vector<torch::lazy::Shape> shapes{output.shape().Get()};
+
+  auto exponent = at::Scalar(2);
+  auto output_ir = output.GetIrValue();
+  torch::lazy::hash_t node_hash = torch::lazy::MHash(static_cast<uint32_t>(at::aten::pow), exponent);
+  torch::lazy::hash_t dag_hash = torch::lazy::OperandHashes({output_ir}, node_hash);
   torch::lazy::NodePtr pow_node =
-      torch::lazy::MakeNode<ir::ops::PowTensorScalar>(output.GetIrValue(), 
-                                                      LazyGraphExecutor::Get()->GetIrValueForScalar(2, output.GetDevice()),
+      torch::lazy::MakeNode<ir::ops::PowTensorScalar>(output_ir,
+                                                      LazyGraphExecutor::Get()->GetIrValueForScalar(exponent, output.GetDevice()),
+                                                      node_hash, dag_hash, 
                                                       std::move(shapes));
   return mul(grad_output,
              rsub(LazyTensor::Create(pow_node, output.GetDevice()), 1, 1));
