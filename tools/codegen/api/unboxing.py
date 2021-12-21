@@ -73,14 +73,6 @@ from tools.codegen.model import Argument, Type, BaseType, OptionalType, ListType
 #               dtype_opt_out = c10::optional<at::ScalarType>();
 #           }
 #       ```
-#    - (implicitly) TensorOptions
-#       ```cpp
-#           const auto options = TensorOptions()
-#               .dtype(dtype_opt_out)
-#               .layout(layout_opt_out)
-#               .device(device_opt_out)
-#               .pinned_memory(pin_memory_opt_out);
-#       ```
 #
 # - Unboxed Kernel Call
 #   ```cpp

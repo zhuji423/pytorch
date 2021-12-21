@@ -1352,20 +1352,19 @@ def main() -> None:
             Target.DECLARATION), native_functions)),
     })
 
-    if options.enable_codegen_unboxing:
-        cpu_fm.write_sharded(
-            'CodegenFunctions.cpp',
-            native_functions,
-            key_fn=key_func,
-            env_callable=lambda fn: {
-                'definitions': [ComputeUnboxingFunctions(Target.DEFINITION)(fn)]},
-            num_shards=5,
-            sharded_keys={'definitions'}
-        )
-        cpu_fm.write('CodegenFunctions.h', lambda: {
-            'declarations': list(mapMaybe(ComputeUnboxingFunctions(
-                Target.DECLARATION), native_functions)),
-        })
+    cpu_fm.write_sharded(
+        'CodegenFunctions.cpp',
+        native_functions,
+        key_fn=key_func,
+        env_callable=lambda fn: {
+            'definitions': [ComputeUnboxingFunctions(Target.DEFINITION)(fn)]},
+        num_shards=5,
+        sharded_keys={'definitions'}
+    )
+    cpu_fm.write('CodegenFunctions.h', lambda: {
+        'declarations': list(mapMaybe(ComputeUnboxingFunctions(
+            Target.DECLARATION), native_functions)),
+    })
 
     cpu_fm.write('Functions.h', lambda: {
         'static_dispatch_extra_headers': static_dispatch_extra_headers(static_dispatch_idx),
@@ -1375,17 +1374,16 @@ def main() -> None:
 
     cpu_fm.write('Functions.cpp', lambda: {})
 
-    if options.enable_codegen_unboxing:
-        cpu_fm.write_sharded(
-            'CodegenUnboxingWrappers.cpp',
-            native_functions,
-            key_fn=key_func,
-            env_callable=lambda fn: {
-                'unboxed_ops': [ComputeUnboxingWrapper()(fn)]},
-            num_shards=5,
-            sharded_keys={'unboxed_ops'},
-            template_dir_override="tools/jit/templates",
-        )
+    cpu_fm.write_sharded(
+        'CodegenUnboxingWrappers.cpp',
+        native_functions,
+        key_fn=key_func,
+        env_callable=lambda fn: {
+            'unboxed_ops': [ComputeUnboxingWrapper()(fn)]},
+        num_shards=5,
+        sharded_keys={'unboxed_ops'},
+        template_dir_override="tools/jit/templates",
+    )
 
     core_fm.write('TensorBody.h', lambda: {
         'static_dispatch_extra_headers': static_dispatch_extra_headers(static_dispatch_idx, skip_tensor_include=True),
