@@ -132,12 +132,12 @@ Tensor& leaky_relu_quantized_cpu_(Tensor& self, const Scalar& negval) {
 namespace {
 Tensor quantized_relu6(const Tensor& qx) {
   Tensor qy;
-  qy = hardtanh_quantized_cpu(qx, 0.0f, 6.0f);
+  qy = clamp_quantized_cpu(qx, 0.0f, 6.0f);
   return qy;
 }
 
 Tensor quantized_relu6_(Tensor& qx) {
-  hardtanh_quantized_cpu_(qx, 0.0f, 6.0f);
+  clamp_quantized_cpu_(qx, 0.0f, 6.0f);
   return qx;
 }
 
