@@ -27,9 +27,7 @@ class RegistrationListener final : public c10::OpRegistrationListener {
       // TODO Find a better way to handle this.
       return;
     }
-    if (!torch::jit::findOperatorFor(op.operator_name())) {
-      torch::jit::registerOperator(createOperatorFromC10(op));
-    }
+    torch::jit::registerOperator(createOperatorFromC10(op));
   }
 
   void onOperatorDeregistered(const c10::OperatorHandle& op) override {
