@@ -614,6 +614,7 @@ class OpInfo(object):
                  test_conjugated_samples=True,
                  test_neg_view=True,
                  assert_jit_shape_analysis=False,  # assert that jit shape analysis fully propagates shape
+                 expect_nnc_fusion=True,  # assert that nnc fuses the single op
                  ):
 
         dtypes_args = (dtypes, dtypesIfCPU, dtypesIfCUDA, dtypesIfROCM)
@@ -772,6 +773,8 @@ class OpInfo(object):
 
         self.test_conjugated_samples = test_conjugated_samples
         self.test_neg_view = test_neg_view
+
+        self.expect_nnc_fusion = expect_nnc_fusion
 
     def __call__(self, *args, **kwargs):
         """Calls the function variant of the operator."""
@@ -8520,6 +8523,7 @@ op_db: List[OpInfo] = [
            assert_autodiffed=True,
            supports_forward_ad=True,
            supports_fwgrad_bwgrad=True,
+           expect_nnc_fusion=False,
            skips=(
                # FIXME: bfloat16 backward support likely depends on CUDA11+
                #   and SM53+
