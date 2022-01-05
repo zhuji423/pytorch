@@ -2362,3 +2362,12 @@ TEST(StaticRuntime, ReplaceWithMaybeCopy) {
   EXPECT_TRUE(
       hasProcessedNodeWithName(smodule, "static_runtime::to_maybe_copy_out"));
 }
+
+TEST(StaticRuntime, ReturnConstant) {
+  const auto src = R"JIT(
+    def forward(self):
+        return 1
+  )JIT";
+
+  testStaticRuntime(src, {});
+}
