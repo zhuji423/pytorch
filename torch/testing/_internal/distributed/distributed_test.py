@@ -8311,6 +8311,43 @@ class DistributedTest:
                 for buf in bufs[1:]:
                     self.assertEqual(rank_0_buf, buf)
 
+
+        @skip_if_lt_x_gpu(2)
+        @sandcastle_skip_if(
+            BACKEND != "nccl" and BACKEND != "gloo",
+            "Only Nccl & Gloo backend support DistributedDataParallel",
+        )
+        def test_ddp_syncbn_inplace_modification(self):
+            rank = self.rank
+            torch.cuda.set_device(rank)
+            net = torch.nn.BatchNorm1d(128).cuda()
+            expected_buffer = torch.ones(5, device='cuda')
+            net.register_buffer('buf', expected_buffer.clone())
+            net = torch.nn.parallel.DistributedDataParallel(
+                net,
+                device_ids=[rank],
+                output_device=rank,
+            )
+            # Explicitly zero the non-zero rank buffers to make sure broadcast is
+            # working correctly during training loop.
+            if self.rank != 0:
+                net.module.buf.zero_()
+
+            net.train()
+            if self.rank != 0:
+                self.assertNotEqual(net.module.buf, expected_buffer)
+            input = torch.rand(64, 128, device='cuda')
+            # Used to fail with "one of the variables needed for gradient
+            # computation has been modified by an inplace operation", see
+            # https://github.com/pytorch/pytorch/issues/66504
+            for i in range(10):
+                o = net(input).sum() + net(input).sum()
+                o.backward()
+
+            # All DDP nets should have rank 0's buffer.
+            buf = net.module.buf
+            self.assertEqual(net.module.buf, expected_buffer)
+
         @skip_if_lt_x_gpu(2)
         @sandcastle_skip_if(
             BACKEND != "nccl" and BACKEND != "gloo",
