@@ -3021,6 +3021,16 @@ class TestFX(JitTestCase):
             .check("Tuple[str, Tuple[()]]")    \
             .run(scripted.code)
 
+    @unittest.skipIf(IS_WINDOWS, "Python Windows bug? https://bugs.python.org/issue45108")
+    def test_assert(self):
+        def f(x):
+            assert x > 1
+            return x + 1
+        traced = symbolic_trace(f)
+        self.assertEqual(f(2), traced(2))
+        with self.assertRaises(AssertionError):
+            traced(0)
+
     def test_pytree(self):
         def f_sum(x):
             return sum(x)
