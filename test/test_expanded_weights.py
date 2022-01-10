@@ -260,7 +260,7 @@ class ContextManagerTests(TestBase):
         test_case._do_test(module, input)
 
 # TODO: Once all of these use ModuleInfo, replace with ModuleInfo tests
-supported_modules = ['Linear']
+supported_modules = ['Linear', 'Conv1d', 'Conv2d', 'Conv3d', 'GroupNorm', 'LayerNorm', 'InstanceNorm', 'Embedding']
 supported_tests = [t for t in module_tests + new_module_tests if 'module_name' in t and t['module_name'] in supported_modules]
 for test_param in supported_tests:
     if 'constructor' not in test_param:
@@ -303,12 +303,13 @@ def supported_inputs(op, sample_inputs, supported_inputs=True):
     operations that would cause inter-batch operations. Removes all of the cases it cannot deal with
     """
     def filter_fn(input):
+        convolutions = ["nn.functional.conv1d", "nn.functional.conv2d", "nn.functional.conv3d"]
         if op.name == "nn.functional.linear":
             is_supported_input = len(input.input.shape) > 1  # input of rank 1 means no batch dim
         elif op.name == "nn.functional.layer_norm":
             normalized_shape = input.args[0]
             is_supported_input = input.input.shape != normalized_shape  # would cause inter-batch operations
-        elif op.name == "nn.functional.conv2d":
+        elif op.name in convolutions:
             # currently can't deal with padding computation on Python level
             is_supported_input = 'padding' not in input.kwargs or not isinstance(input.kwargs['padding'], str)
         elif op.name == "nn.functional.embedding":
