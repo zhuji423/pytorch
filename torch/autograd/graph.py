@@ -86,7 +86,8 @@ class save_on_cpu():
 
     Args:
         pin_memory (bool): If ``True`` tensors will be saved to CPU pinned memory
-                           during packing and copied to GPU asynchronously during unpacking.
+                           via asynchronous transfer to CPU during packing and
+                           copied to GPU asynchronously during unpacking.
                            Defaults to ``False``.
                            Also see :ref:`cuda-memory-pinning`.
 
@@ -114,15 +115,7 @@ class save_on_cpu():
     """
     def __init__(self, pin_memory=False):
         def pack_to_cpu(tensor):
-            if not pin_memory:
-                return (tensor.device, tensor.cpu())
-
-            packed = torch.empty(
-                tensor.size(),
-                dtype=tensor.dtype,
-                layout=tensor.layout,
-                pin_memory=(torch.cuda.is_available() and not tensor.is_sparse))
-            packed.copy_(tensor)
+            packed = tensor.to("cpu", non_blocking=pin_memory)
             return (tensor.device, packed)
 
         def unpack_from_cpu(packed):
