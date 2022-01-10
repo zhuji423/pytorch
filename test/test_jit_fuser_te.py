@@ -1657,7 +1657,6 @@ class TestTEFuser(JitTestCase):
 
             unsupported_dtypes = [
                 torch.uint8,
-                torch.complex32,
                 torch.complex64,
                 torch.complex128,
                 torch.qint8,

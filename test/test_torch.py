@@ -3181,6 +3181,9 @@ class TestTorchDeviceType(TestCase):
         s[2:7] = 1
         self.assertEqual(s, storage_type(l))
 
+    def test_unsupported_complex_type(self, device):
+        with self.assertRaisesRegex(AttributeError, r'module \'torch\' has no attribute \'complex32\''):
+            torch.tensor(1j, dtype=torch.complex32, device=device)
 
     @onlyNativeDeviceTypes
     @dtypes(*get_all_dtypes())
@@ -6066,8 +6069,6 @@ else:
         device_type = torch.device(device).type
         return device_type != 'cuda' or (reduceop == 'multiply' and dtype.is_floating_point)
 
-    # torch.{zeros, ones} do not support ComplexHalf (torch.complex32)
-    # So, we are skipping it here.
     @dtypes(*(get_all_fp_dtypes(include_bfloat16=False, include_half=False) +
               get_all_complex_dtypes()))
     @dtypesIfCPU(*get_all_dtypes())
@@ -6096,8 +6097,6 @@ else:
             input.scatter_(0, index, src, reduce=operation)
             self.assertEqual(input, result)
 
-    # torch.{zeros, ones} do not support ComplexHalf (torch.complex32)
-    # So, we are skipping it here.
     @dtypes(*(get_all_fp_dtypes(include_bfloat16=False, include_half=False) +
               get_all_complex_dtypes()))
     @dtypesIfCPU(*get_all_dtypes())
@@ -6137,8 +6136,6 @@ else:
                          torch.tensor([[3], [1]], device=device,
                                       dtype=torch.float32).repeat(1, width))
 
-    # torch.{zeros, ones} do not support ComplexHalf (torch.complex32)
-    # So, we are skipping it here.
     @dtypes(*(get_all_fp_dtypes(include_bfloat16=False, include_half=False) +
               get_all_complex_dtypes()))
     @dtypesIfCPU(*get_all_dtypes())
@@ -6163,8 +6160,6 @@ else:
             input.scatter_(0, index, src, reduce=operation)
             self.assertEqual(input, result, msg=f"result: {result} input: {input} method: {str(operation)}")
 
-    # torch.{zeros, ones} do not support ComplexHalf (torch.complex32)
-    # So, we are skipping it here.
     @onlyCUDA
     @dtypes(*(get_all_complex_dtypes() +
               get_all_int_dtypes()))
